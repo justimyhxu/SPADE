@@ -138,7 +138,11 @@ class Pix2PixTranModel(torch.nn.Module):
 
     def compute_generator_loss(self, input_images, real_image):
         G_losses = {}
-        pose_image, app_image = input_images
+        if self.opt.app_first:
+            app_image, pose_image = input_images
+        else:
+            pose_image, app_image = input_images
+
         fake_image, KLD_loss_pose, KLD_loss_app = self.generate_fake(
             app_image, real_image, compute_kld_loss=self.opt.use_vae, pose_image=pose_image)
 
