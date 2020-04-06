@@ -10,7 +10,7 @@ import data
 from util.iter_counter import IterationCounter
 from util.visualizer import Visualizer
 from trainers.pix2pix_trainer import Pix2PixTrainer
-
+from trainers.pix2pixtran_trainer import Pix2PixTranModel
 # parse options
 opt = TrainOptions().parse()
 
@@ -21,7 +21,10 @@ print(' '.join(sys.argv))
 dataloader = data.create_dataloader(opt)
 
 # create trainer for our model
-trainer = Pix2PixTrainer(opt)
+if opt.use_trans_model:
+    trainer = Pix2PixTranModel(opt)
+else:
+    trainer = Pix2PixTrainer(opt)
 
 # create tool for counting iterations
 iter_counter = IterationCounter(opt, len(dataloader))
