@@ -10,7 +10,7 @@ import data
 from util.iter_counter import IterationCounter
 from util.visualizer import Visualizer
 from trainers.pix2pix_trainer import Pix2PixTrainer
-from trainers.pix2pixtran_trainer import Pi
+from trainers.pix2pixtran_trainer import Pix2PixTranTrainer
 # parse options
 opt = TrainOptions().parse()
 
@@ -22,7 +22,7 @@ dataloader = data.create_dataloader(opt)
 
 # create trainer for our model
 if opt.use_trans_model:
-    trainer = Pix2PixTranModel(opt)
+    trainer = Pix2PixTranTrainer(opt)
 else:
     trainer = Pix2PixTrainer(opt)
 
