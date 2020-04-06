@@ -8,7 +8,7 @@ import models.networks as networks
 import util.util as util
 
 
-class Pix2PixModel(torch.nn.Module):
+class Pix2PixTranModel(torch.nn.Module):
     @staticmethod
     def modify_commandline_options(parser, is_train):
         networks.modify_commandline_options(parser, is_train)
@@ -40,7 +40,6 @@ class Pix2PixModel(torch.nn.Module):
     # routines based on |mode|.
     def forward(self, data, mode):
         input_images, real_image = self.preprocess_input(data)
-
         if mode == 'generator':
             g_loss, generated = self.compute_generator_loss(
                 input_images, real_image)
@@ -55,7 +54,7 @@ class Pix2PixModel(torch.nn.Module):
         elif mode == 'inference':
             with torch.no_grad():
                 app_image, pose_image = input_images
-                fake_image, _ = self.generate_fake(input_images, real_image, pose_image=pose_image)
+                fake_image, _, _1 = self.generate_fake(input_images, real_image, pose_image=pose_image)
             return fake_image
         else:
             raise ValueError("|mode| is invalid")
@@ -63,7 +62,8 @@ class Pix2PixModel(torch.nn.Module):
     def create_optimizers(self, opt):
         G_params = list(self.netG.parameters())
         if opt.use_vae:
-            G_params += list(self.netE.parameters())
+            G_params += list(self.netE_app.parameters())
+            G_params += list(self.netE_pose.parameters())
         if opt.isTrain:
             D_params = list(self.netD.parameters())
 
@@ -82,8 +82,9 @@ class Pix2PixModel(torch.nn.Module):
         util.save_network(self.netG, 'G', epoch, self.opt)
         util.save_network(self.netD, 'D', epoch, self.opt)
         if self.opt.use_vae:
-            util.save_network(self.netE, 'E', epoch, self.opt)
-
+            util.save_network(self.netE_pose, 'E_pose', epoch, self.opt)
+            util.save_network(self.netE_app, 'E_app', epoch, self.opt)
+           
     ############################################################################
     # Private helper methods
     ############################################################################
@@ -92,14 +93,14 @@ class Pix2PixModel(torch.nn.Module):
         netG = networks.define_G(opt)
         netD = networks.define_D(opt) if opt.isTrain else None
         netE_app = networks.define_E(opt) if opt.use_vae else None
-        netE_pose = networks.define_G(opt) if opt.use_vae else None
+        netE_pose = networks.define_E(opt) if opt.use_vae else None
         if not opt.isTrain or opt.continue_train:
             netG = util.load_network(netG, 'G', opt.which_epoch, opt)
             if opt.isTrain:
                 netD = util.load_network(netD, 'D', opt.which_epoch, opt)
             if opt.use_vae:
-                netE_app = util.load_network(netE_app, 'E', opt.which_epoch, opt)
-                netE_pose = util.load_network(netE_app, 'E', opt.which_epoch, opt)
+                netE_app = util.load_network(netE_app, 'E_app', opt.which_epoch, opt)
+                netE_pose = util.load_network(netE_pose, 'E_pose', opt.which_epoch, opt)
 
         return netG, netD, netE_app, netE_pose
 
@@ -109,15 +110,12 @@ class Pix2PixModel(torch.nn.Module):
 
     def preprocess_input(self, data):
         # move to GPU and change data types
-        data['label'] = data['label'].long()
+        data['label'] = data['label'].float()
         if self.use_gpu():
             data['label'] = data['label'].cuda()
             data['instance'] = data['instance'].cuda()
             data['image'] = data['image'].cuda()
-            if 'pose' in data:
-                data['pose']  = data['pose'].cuda()
-            else:
-                data['pose'] = None
+            data['app']  = data['app'].cuda()
 
         # create one-hot label map
         label_map = data['label']
@@ -136,11 +134,11 @@ class Pix2PixModel(torch.nn.Module):
             instance_edge_map = self.get_edges(inst_map)
             input_semantics = torch.cat((input_semantics, instance_edge_map), dim=1)
 
-        return (input_semantics,data['pose']), data['image']
+        return (input_semantics,data['app']), data['image']
 
     def compute_generator_loss(self, input_images, real_image):
         G_losses = {}
-        app_image, pose_image = input_images
+        pose_image, app_image = input_images
         fake_image, KLD_loss_pose, KLD_loss_app = self.generate_fake(
             app_image, real_image, compute_kld_loss=self.opt.use_vae, pose_image=pose_image)
 
@@ -174,12 +172,9 @@ class Pix2PixModel(torch.nn.Module):
 
     def compute_discriminator_loss(self, input_images, real_image):
         D_losses = {}
-        if isinstance(input_images) == tuple:
-            app_image, pose_image = input_images
-        else:
-            app_image = input_images
+        pose_image, app_image = input_images
         with torch.no_grad():
-            fake_image, _ = self.generate_fake(app_image, real_image=real_image, pose_image=pose_image)
+            fake_image, _, _1 = self.generate_fake(app_image, real_image=real_image, pose_image=pose_image)
             fake_image = fake_image.detach()
             fake_image.requires_grad_()
 
@@ -207,7 +202,7 @@ class Pix2PixModel(torch.nn.Module):
             if compute_kld_loss:
                 KLD_loss_pose = self.KLDLoss(mu_pose, logvar_pose) * self.opt.lambda_kld
                 KLD_loss_app = self.KLDLoss(mu_app, logvar_app) * self.opt.lambda_kld
-        fake_image = self.netG(app_image, z1=z_pose, z2=z_app)
+        fake_image = self.netG(z_pose=z_pose, z_app=z_app)
 
         assert (not compute_kld_loss) or self.opt.use_vae, \
             "You cannot compute KLD loss if opt.use_vae == False"
@@ -218,10 +213,7 @@ class Pix2PixModel(torch.nn.Module):
     # for each fake and real image.
 
     def discriminate(self, input_semantics, fake_image, real_image):
-        if isinstance(input_semantics) == tuple:
-            app_image, pose_image = input_semantics
-        else:
-            pose_image = input_semantics
+        pose_image, app_image = input_semantics
         fake_concat = torch.cat([pose_image, fake_image], dim=1)
         real_concat = torch.cat([pose_image, real_image], dim=1)
 

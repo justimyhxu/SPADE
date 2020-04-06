@@ -63,8 +63,6 @@ class StyleGANDataset(Pix2pixDataset):
             instance_paths = [os.path.join(opt.dataroot, 'crop_Img', x) for x in annotations['flow']]
         else:
             instance_paths = []
-        if opt.load_features:
-            feat_paths = [os.path.join(opt.dataroot, 'crop_Img', x) for x in annotations['features']]
         return label_paths, app_paths, images_paths, instance_paths
 
     def paths_match(self, path1, path2):
@@ -86,16 +84,17 @@ class StyleGANDataset(Pix2pixDataset):
             label_tensor[label_tensor == 255] = self.opt.label_nc  # 'unknown' is opt.label_nc
 
         # Pose image, provide pose image
-        app_path = self.pose_paths[index]
+        app_path = self.app_paths[index]
         app_image = Image.open(app_path)
         transform_pose = get_transform(self.opt, params)
         app_tensor = transform_pose(app_image)
 
         # input image (real images)
         image_path = self.image_paths[index]
-        assert self.paths_match(label_path, image_path), \
-            "The label_path %s and image_path %s don't match." % \
-            (label_path, image_path)
+        if not self.opt.no_pairing_check:
+            assert self.paths_match(label_path, image_path), \
+                "The label_path %s and image_path %s don't match." % \
+                (label_path, image_path)
         image = Image.open(image_path)
         image = image.convert('RGB')
 

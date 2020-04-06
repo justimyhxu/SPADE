@@ -67,8 +67,8 @@ class AdaIn(nn.Module):
     def __init__(self, config_text, norm_nc, label_nc):
         super().__init__()
 
-        assert config_text.startswith('spade')
-        parsed = re.search('spade(\D+)(\d)x\d', config_text)
+        assert config_text.startswith('adain')
+        parsed = re.search('adain(\D+)(\d)x\d', config_text)
         param_free_norm_type = str(parsed.group(1))
         ks = int(parsed.group(2))
 
@@ -82,7 +82,7 @@ class AdaIn(nn.Module):
             raise ValueError('%s is not a recognized param-free norm type in SPADE'
                              % param_free_norm_type)
         pw = ks // 2
-        self.mlp_shared = nn.Linear(label_nc, norm_nc*2, kenel_size=ks, padding=pw)
+        self.mlp_shared = nn.Linear(label_nc, norm_nc*2)
 
 
     def forward(self, x, style):

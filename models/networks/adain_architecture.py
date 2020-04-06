@@ -41,10 +41,10 @@ class ADAINResnetBlock(nn.Module):
 
         # define normalization layers
         spade_config_str = opt.norm_G.replace('spectral', '')
-        self.norm_0 = AdaIn(spade_config_str, fin, opt.semantic_nc)
-        self.norm_1 = AdaIn(spade_config_str, fmiddle, opt.semantic_nc)
+        self.norm_0 = AdaIn(spade_config_str, fin, opt.z_dim)
+        self.norm_1 = AdaIn(spade_config_str, fmiddle, opt.z_dim)
         if self.learned_shortcut:
-            self.norm_s = AdaIn(spade_config_str, fin, opt.semantic_nc)
+            self.norm_s = AdaIn(spade_config_str, fin, opt.z_dim)
 
     # note the resnet block with SPADE also takes in |seg|,
     # the semantic segmentation map as input
