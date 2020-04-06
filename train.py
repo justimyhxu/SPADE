@@ -10,7 +10,7 @@ import data
 from util.iter_counter import IterationCounter
 from util.visualizer import Visualizer
 from trainers.pix2pix_trainer import Pix2PixTrainer
-from trainers.pix2pixtran_trainer import Pix2PixTranModel
+from trainers.pix2pixtran_trainer import Pi
 # parse options
 opt = TrainOptions().parse()
 

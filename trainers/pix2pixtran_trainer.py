@@ -8,7 +8,7 @@ from models.pix2pix2tran_model import Pix2PixModel
 from models.pix2pix2tran_model import Pix2PixTranModel
 
 
-class Pix2PixTrainer():
+class Pix2PixTranTrainer():
     """
     Trainer creates the model and optimizers, and uses them to
     updates the weights of the network while reporting losses
