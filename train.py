@@ -52,7 +52,8 @@ for epoch in iter_counter.training_epochs():
             visualizer.plot_current_errors(losses, iter_counter.total_steps_so_far)
 
         if iter_counter.needs_displaying():
-            visuals = OrderedDict([('pose_image', data_i['label']),
+            visuals = OrderedDict([('pose_image', data_i['pose']),
+                                   ('pose_image_mask', data_i['pose_mask']),
                                    ('app_image', data_i['app']),
                                    ('synthesized_image', trainer.get_latest_generated()),
                                    ('real_image', data_i['image'])])

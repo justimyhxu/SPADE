@@ -110,15 +110,16 @@ class Pix2PixTranModel(torch.nn.Module):
 
     def preprocess_input(self, data):
         # move to GPU and change data types
-        data['label'] = data['label'].float()
+
         if self.use_gpu():
-            data['label'] = data['label'].cuda()
+            data['pose'] = data['pose'].float()
+            data['pose_mask'] = data['pose_mask'].float()
             data['instance'] = data['instance'].cuda()
             data['image'] = data['image'].cuda()
             data['app']  = data['app'].cuda()
 
         # create one-hot label map
-        label_map = data['label']
+        label_map = data['pose_mask']
         if self.opt.label_nc == 0:
             input_semantics = label_map.data.cuda()
         else:
@@ -134,14 +135,14 @@ class Pix2PixTranModel(torch.nn.Module):
             instance_edge_map = self.get_edges(inst_map)
             input_semantics = torch.cat((input_semantics, instance_edge_map), dim=1)
 
-        return (input_semantics,data['app']), data['image']
+        return (data['pose'], data['app'], data['pose_mask']), data['image']
 
     def compute_generator_loss(self, input_images, real_image):
         G_losses = {}
         if self.opt.app_first:
-            app_image, pose_image = input_images
+            app_image, pose_image, pose_mask = input_images
         else:
-            pose_image, app_image = input_images
+            pose_image, app_image, pose_mask = input_images
 
         fake_image, KLD_loss_pose, KLD_loss_app = self.generate_fake(
             app_image, real_image, compute_kld_loss=self.opt.use_vae, pose_image=pose_image)
@@ -176,7 +177,7 @@ class Pix2PixTranModel(torch.nn.Module):
 
     def compute_discriminator_loss(self, input_images, real_image):
         D_losses = {}
-        pose_image, app_image = input_images
+        pose_image, app_image, pose_mask = input_images
         with torch.no_grad():
             fake_image, _, _1 = self.generate_fake(app_image, real_image=real_image, pose_image=pose_image)
             fake_image = fake_image.detach()
@@ -217,9 +218,13 @@ class Pix2PixTranModel(torch.nn.Module):
     # for each fake and real image.
 
     def discriminate(self, input_semantics, fake_image, real_image):
-        pose_image, app_image = input_semantics
-        fake_concat = torch.cat([pose_image, fake_image], dim=1)
-        real_concat = torch.cat([pose_image, real_image], dim=1)
+        pose_image, app_image, pose_mask = input_semantics
+        if self.opt.dis_no_pose_mask:
+            p_img = pose_image
+        else:
+            p_img = pose_mask
+        fake_concat = torch.cat([p_img, fake_image], dim=1)
+        real_concat = torch.cat([p_img, real_image], dim=1)
 
         # In Batch Normalization, the fake and real images are
         # recommended to be in the same batch to avoid disparate

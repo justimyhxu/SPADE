@@ -38,7 +38,7 @@ class BaseOptions():
         parser.add_argument('--label_nc', type=int, default=182, help='# of input label classes without unknown class. If you have unknown class as class label, specify --contain_dopntcare_label.')
         parser.add_argument('--contain_dontcare_label', action='store_true', help='if the label map contains dontcare label (dontcare=255)')
         parser.add_argument('--output_nc', type=int, default=3, help='# of output image channels')
-
+        parser.add_argument('--rm_bg',action='store_true')
         # for setting inputs
         parser.add_argument('--dataroot', type=str, default='./datasets/cityscapes/')
         parser.add_argument('--dataset_mode', type=str, default='coco')
@@ -63,6 +63,7 @@ class BaseOptions():
         parser.add_argument('--z_dim', type=int, default=256,
                             help="dimension of the latent z vector")
         parser.add_argument('--app_first', action='store_true')
+        parser.add_argument('--dis_no_pose_mask', action='store_true')
 
         # for instance-wise features
         parser.add_argument('--no_instance', action='store_true', help='if specified, do *not* add instance map as input')
