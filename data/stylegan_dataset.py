@@ -43,7 +43,7 @@ class StyleGANDataset(Pix2pixDataset):
         self.image_paths = image_paths
         self.instance_paths = instance_paths
         self.pose_mask_paths = pose_mask_paths
-        size = len(self.label_paths)
+        size = len(self.pose_paths)
         self.dataset_size = size
 
     def get_paths(self, opt):
@@ -66,7 +66,7 @@ class StyleGANDataset(Pix2pixDataset):
         label_paths = [full_p(x) for x in annotations['pose_image']]
         app_paths = [full_p(x) for x in annotations['app_image']]
         images_paths = [full_p(x) for x in annotations['target_image']]
-        pose_mask_paths =[os.path.join(opt.dataroot, prefix, x.replace('.jpg','_mask.jpg')) for x in annotations['pose_image']]
+        pose_mask_paths =[os.path.join(opt.dataroot,'crop_Mask', x.replace('.jpg','_mask.jpg')) for x in annotations['pose_image']]
         if not opt.no_instance:
             instance_paths = [os.path.join(opt.dataroot, 'crop_Img', x) for x in annotations['flow']]
         else:
@@ -85,7 +85,7 @@ class StyleGANDataset(Pix2pixDataset):
         params = get_params(self.opt, pose_mask.size)
 
         if self.opt.label_nc == 0:
-            transform_pose_mask = get_transform(self.opt, params)
+            transform_pose_mask = get_transform(self.opt, params,method=Image.NEAREST, normalize=False)
             pose_mask_tensor = transform_pose_mask(pose_mask.convert('RGB'))
         else:
             transform_pose_mask = get_transform(self.opt, params, method=Image.NEAREST, normalize=False)
