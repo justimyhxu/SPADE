@@ -37,6 +37,12 @@ class StyleGenerator(BaseNetwork):
             # downsampled segmentation map instead of random z
             self.fc = nn.Conv2d(self.opt.semantic_nc, 16 * nf, 3, padding=1)
 
+        layers = []
+        for i in range(4):
+            layers.append(nn.Linear(opt.z_dim, opt.z_dim))
+            layers.append(nn.LeakyReLU(0.2))
+        self.code_embed = nn.Sequential(*layers)
+
         self.head_0 = ADAINResnetBlock(16 * nf, 16 * nf, opt)
 
         self.G_middle_0 = ADAINResnetBlock(16 * nf, 16 * nf, opt)
@@ -85,6 +91,10 @@ class StyleGenerator(BaseNetwork):
         else:
             raise NotImplementedError
 
+        if self.opt.no_code_embed:
+            z_app = z_app
+        else:
+            z_app = self.code_embed(z_app)
         x = self.head_0(x, z_app)
 
         x = self.up(x)

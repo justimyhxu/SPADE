@@ -64,6 +64,8 @@ class BaseOptions():
                             help="dimension of the latent z vector")
         parser.add_argument('--app_first', action='store_true')
         parser.add_argument('--dis_no_pose_mask', action='store_true')
+        parser.add_argument('--no_app_vae_loss', action='store_true', help='no use app vae loss')
+        parser.add_argument('--no_code_embed', action='store_true', help='no use app vae loss')
 
         # for instance-wise features
         parser.add_argument('--no_instance', action='store_true', help='if specified, do *not* add instance map as input')

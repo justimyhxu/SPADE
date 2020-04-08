@@ -206,7 +206,10 @@ class Pix2PixTranModel(torch.nn.Module):
             z_app, mu_app, logvar_app = self.encode_z(app_image, self.netE_app)
             if compute_kld_loss:
                 KLD_loss_pose = self.KLDLoss(mu_pose, logvar_pose) * self.opt.lambda_kld
-                KLD_loss_app = self.KLDLoss(mu_app, logvar_app) * self.opt.lambda_kld
+                if self.opt.no_app_vae_loss:
+                    KLD_loss_app = 0
+                else:
+                    KLD_loss_app = self.KLDLoss(mu_app, logvar_app) * self.opt.lambda_kld
         fake_image = self.netG(z_pose=z_pose, z_app=z_app)
 
         assert (not compute_kld_loss) or self.opt.use_vae, \
